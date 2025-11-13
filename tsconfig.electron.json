@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "./dist-electron",
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "moduleResolution": "node",
+    "verbatimModuleSyntax": false,
+    "erasableSyntaxOnly": false
+  },
+  "include": ["electron/**/*"]
+}
+
