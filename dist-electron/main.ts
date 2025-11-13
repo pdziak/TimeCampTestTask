@@ -13,7 +13,7 @@ let win: BrowserWindow | null = null;
 const preload = path.join(__dirname, 'preload.js');
 const url = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
 
-function createWindow() {
+function createWindow(): void {
   win = new BrowserWindow({
     width: 1200,
     height: 800,
