@@ -4,6 +4,11 @@ import { fetchActivity, type Activity } from './api/timecamp'
 
 function App() {
   const [apiToken, setApiToken] = useState<string>('')
+  const [date, setDate] = useState<string>(() => {
+    // Default to today's date in YYYY-MM-DD format
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  })
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -22,12 +27,17 @@ function App() {
       return
     }
 
+    if (!date.trim()) {
+      setError('Please select a date')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setActivities([])
 
     try {
-      const data = await fetchActivity(apiToken)
+      const data = await fetchActivity(apiToken, date)
       setActivities(data)
       // Save token to localStorage for convenience
       localStorage.setItem('timecamp_api_token', apiToken)
@@ -41,6 +51,11 @@ function App() {
 
   const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setApiToken(e.target.value)
+    setError(null)
+  }
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDate(e.target.value)
     setError(null)
   }
 
@@ -59,9 +74,18 @@ function App() {
             placeholder="Enter your TimeCamp API token"
             disabled={loading}
           />
+          <label htmlFor="date">Date:</label>
+          <input
+            id="date"
+            type="date"
+            value={date}
+            onChange={handleDateChange}
+            disabled={loading}
+            required
+          />
           <button 
             onClick={handleFetchData} 
-            disabled={loading || !apiToken.trim()}
+            disabled={loading || !apiToken.trim() || !date.trim()}
           >
             {loading ? 'Loading...' : 'Fetch Activity'}
           </button>
