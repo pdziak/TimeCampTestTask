@@ -8,6 +8,12 @@ const API_BASE_URL = 'https://app.timecamp.com/third_party/api';
 export interface Activity {
   id: number;
   name: string;
+  duration?: number; // Duration in seconds
+  time?: number; // Time in seconds
+  duration_seconds?: number;
+  time_spent?: number;
+  start_time?: string;
+  end_time?: string;
   [key: string]: unknown;
 }
 
@@ -64,5 +70,61 @@ export async function fetchActivity(apiToken: string, date: string): Promise<Act
     }
     throw new Error('Failed to fetch activity data');
   }
+}
+
+/**
+ * Calculates total time spent from activities (in seconds)
+ * @param activities - Array of activity objects
+ * @returns Total time in seconds
+ */
+export function calculateTotalTime(activities: Activity[]): number {
+  return activities.reduce((total, activity) => {
+    // Try different possible field names for duration/time
+    const duration = 
+      activity.duration ?? 
+      activity.time ?? 
+      activity.duration_seconds ?? 
+      activity.time_spent ?? 
+      0;
+    
+    // If duration is in a different format, try to calculate from start/end times
+    if (duration === 0 && activity.start_time && activity.end_time) {
+      const start = new Date(activity.start_time).getTime();
+      const end = new Date(activity.end_time).getTime();
+      if (!isNaN(start) && !isNaN(end) && end > start) {
+        return total + Math.floor((end - start) / 1000); // Convert to seconds
+      }
+    }
+    
+    return total + (typeof duration === 'number' ? duration : 0);
+  }, 0);
+}
+
+/**
+ * Formats seconds into a human-readable string (e.g., "2h 30m 15s")
+ * @param seconds - Total seconds
+ * @returns Formatted time string
+ */
+export function formatTime(seconds: number): string {
+  if (seconds === 0) {
+    return '0s';
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  const parts: string[] = [];
+  if (hours > 0) {
+    parts.push(`${hours}h`);
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes}m`);
+  }
+  if (secs > 0 || parts.length === 0) {
+    parts.push(`${secs}s`);
+  }
+
+  return parts.join(' ');
 }
 

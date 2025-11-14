@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import './App.css'
-import { fetchActivity, type Activity } from './api/timecamp'
+import { fetchActivity, calculateTotalTime, formatTime, type Activity } from './api/timecamp'
 
 function App() {
   const [apiToken, setApiToken] = useState<string>('')
@@ -59,6 +59,15 @@ function App() {
     setError(null)
   }
 
+  // Calculate total time spent
+  const totalTimeSeconds = useMemo(() => {
+    return calculateTotalTime(activities)
+  }, [activities])
+
+  const formattedTime = useMemo(() => {
+    return formatTime(totalTimeSeconds)
+  }, [totalTimeSeconds])
+
   return (
     <div className="app">
       <div className="container">
@@ -102,8 +111,32 @@ function App() {
         )}
 
         {activities.length > 0 && (
-          <div className="activities-section">
-            <h2>Activities ({activities.length})</h2>
+          <>
+            <div className="summary-section">
+              <h2>Time Summary</h2>
+              <div className="summary-card">
+                <div className="summary-item">
+                  <span className="summary-label">Total Time on Computer:</span>
+                  <span className="summary-value">{formattedTime}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Total Activities:</span>
+                  <span className="summary-value">{activities.length}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Date:</span>
+                  <span className="summary-value">{new Date(date).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="activities-section">
+              <h2>Activities ({activities.length})</h2>
             <div className="activities-list">
               {activities.map((activity) => (
                 <div key={activity.id} className="activity-item">
@@ -113,6 +146,7 @@ function App() {
               ))}
             </div>
           </div>
+          </>
         )}
 
         {!loading && !error && activities.length === 0 && apiToken && (
