@@ -21,4 +21,3 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     return ipcRenderer.invoke(channel, ...args);
   },
 } as IpcRendererAPI);
-

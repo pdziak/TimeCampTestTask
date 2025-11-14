@@ -8,7 +8,7 @@
     "verbatimModuleSyntax": false,
     "erasableSyntaxOnly": false
   },
-  "include": ["dist-electron/**/*.ts"],
+  "include": ["electron/**/*.ts"],
   "exclude": []
 }
 
