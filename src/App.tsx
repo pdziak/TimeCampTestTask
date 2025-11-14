@@ -12,6 +12,7 @@ function App() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasFetched, setHasFetched] = useState<boolean>(false)
 
   useEffect(() => {
     // Load API token from localStorage if available
@@ -35,15 +36,18 @@ function App() {
     setLoading(true)
     setError(null)
     setActivities([])
+    setHasFetched(false)
 
     try {
       const data = await fetchActivity(apiToken, date)
       setActivities(data)
+      setHasFetched(true)
       // Save token to localStorage for convenience
       localStorage.setItem('timecamp_api_token', apiToken)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch activity data')
       setActivities([])
+      setHasFetched(false)
     } finally {
       setLoading(false)
     }
@@ -149,7 +153,13 @@ function App() {
           </>
         )}
 
-        {!loading && !error && activities.length === 0 && apiToken && (
+        {!loading && !error && activities.length === 0 && hasFetched && (
+          <div className="info-message">
+            No activities recorded
+          </div>
+        )}
+
+        {!loading && !error && activities.length === 0 && !hasFetched && apiToken && (
           <div className="info-message">
             Click "Fetch Activity" to load data from TimeCamp API
           </div>
