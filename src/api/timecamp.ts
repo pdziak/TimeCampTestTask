@@ -6,14 +6,23 @@
 const API_BASE_URL = 'https://app.timecamp.com/third_party/api';
 
 export interface Activity {
-  id: number;
-  name: string;
+  id?: number;
+  name?: string;
   duration?: number; // Duration in seconds
   time?: number; // Time in seconds
   duration_seconds?: number;
   time_spent?: number;
+  time_span?: number; // Duration in seconds (TimeCamp API field)
   start_time?: string;
   end_time?: string;
+  user_id?: string;
+  application_id?: string;
+  window_title_id?: string;
+  end_date?: string;
+  task_id?: string;
+  entry_id?: string;
+  updated_at?: string;
+  update_date?: string;
   [key: string]: unknown;
 }
 
@@ -80,7 +89,9 @@ export async function fetchActivity(apiToken: string, date: string): Promise<Act
 export function calculateTotalTime(activities: Activity[]): number {
   return activities.reduce((total, activity) => {
     // Try different possible field names for duration/time
+    // time_span is the actual field used by TimeCamp API
     const duration = 
+      activity.time_span ?? 
       activity.duration ?? 
       activity.time ?? 
       activity.duration_seconds ?? 
