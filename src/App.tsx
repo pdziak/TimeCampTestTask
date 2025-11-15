@@ -1,6 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import './App.css'
 import { fetchActivity, calculateTotalTime, formatTime, type Activity } from './api/timecamp'
+import { ActivityForm } from './components/ActivityForm'
+import { ActivitySummary } from './components/ActivitySummary'
+import { ActivityList } from './components/ActivityList'
+import { ErrorMessage } from './components/ErrorMessage'
+import { LoadingMessage } from './components/LoadingMessage'
+import { InfoMessage } from './components/InfoMessage'
 
 function App() {
   const [apiToken, setApiToken] = useState<string>('')
@@ -79,96 +85,36 @@ function App() {
       <div className="container">
         <h1>TimeCamp Activity Fetcher</h1>
         
-        <div className="api-token-section">
-          <label htmlFor="api-token">API Token:</label>
-          <input
-            id="api-token"
-            type="password"
-            value={apiToken}
-            onChange={handleTokenChange}
-            placeholder="Enter your TimeCamp API token"
-            disabled={loading}
-          />
-          <label htmlFor="date">Date:</label>
-          <input
-            id="date"
-            type="date"
-            value={date}
-            onChange={handleDateChange}
-            disabled={loading}
-            required
-          />
-          <button 
-            onClick={handleFetchData} 
-            disabled={loading || !apiToken.trim() || !date.trim()}
-          >
-            {loading ? 'Loading...' : 'Fetch Activity'}
-          </button>
-        </div>
+        <ActivityForm
+          apiToken={apiToken}
+          date={date}
+          loading={loading}
+          onTokenChange={handleTokenChange}
+          onDateChange={handleDateChange}
+          onFetch={handleFetchData}
+        />
 
-        {error && (
-          <div className="error-message">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
+        {error && <ErrorMessage message={error} />}
 
-        {loading && (
-          <div className="loading-message">Loading activity data...</div>
-        )}
+        {loading && <LoadingMessage />}
 
         {activities.length > 0 && (
           <>
-            <div className="summary-section">
-              <h2>Time Summary</h2>
-              <div className="summary-card">
-                <div className="summary-item">
-                  <span className="summary-label">Total Time on Computer:</span>
-                  <span className="summary-value">{formattedTime}</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Total Activities:</span>
-                  <span className="summary-value">{activities.length}</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Date:</span>
-                  <span className="summary-value">{fetchedDate ? new Date(fetchedDate).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  }) : ''}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="activities-section">
-              <h2>Activities ({activities.length})</h2>
-            <div className="activities-list">
-              {activities.map((activity, index) => {
-                const uniqueKey = activity.entry_id || activity.window_title_id || activity.id || `activity-${index}`;
-                const displayName = activity.name || `Activity ${index + 1}`;
-                return (
-                  <div key={uniqueKey} className="activity-item">
-                    <h3>{displayName}</h3>
-                    <pre>{JSON.stringify(activity, null, 2)}</pre>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            <ActivitySummary
+              totalTime={formattedTime}
+              totalActivities={activities.length}
+              date={fetchedDate}
+            />
+            <ActivityList activities={activities} />
           </>
         )}
 
         {!loading && !error && activities.length === 0 && hasFetched && (
-          <div className="info-message">
-            No activities recorded
-          </div>
+          <InfoMessage message="No activities recorded" />
         )}
 
         {!loading && !error && activities.length === 0 && !hasFetched && apiToken && (
-          <div className="info-message">
-            Click "Fetch Activity" to load data from TimeCamp API
-          </div>
+          <InfoMessage message='Click "Fetch Activity" to load data from TimeCamp API' />
         )}
       </div>
     </div>
