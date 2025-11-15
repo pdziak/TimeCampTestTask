@@ -9,6 +9,7 @@ function App() {
     const today = new Date()
     return today.toISOString().split('T')[0]
   })
+  const [fetchedDate, setFetchedDate] = useState<string>('')
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +42,7 @@ function App() {
     try {
       const data = await fetchActivity(apiToken, date)
       setActivities(data)
+      setFetchedDate(date)
       setHasFetched(true)
       // Save token to localStorage for convenience
       localStorage.setItem('timecamp_api_token', apiToken)
@@ -129,12 +131,12 @@ function App() {
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Date:</span>
-                  <span className="summary-value">{new Date(date).toLocaleDateString('en-US', { 
+                  <span className="summary-value">{fetchedDate ? new Date(fetchedDate).toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 
                     day: 'numeric' 
-                  })}</span>
+                  }) : ''}</span>
                 </div>
               </div>
             </div>
