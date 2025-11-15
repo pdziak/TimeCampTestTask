@@ -3,7 +3,7 @@
  * Documentation: https://developer.timecamp.com/#/operations/get--activity
  */
 
-const API_BASE_URL = 'https://app.timecamp.com/third_party/api';
+import { buildApiUrl } from './api-config';
 
 export interface Activity {
   id?: number;
@@ -53,10 +53,9 @@ export async function fetchActivity(apiToken: string, date: string): Promise<Act
   }
 
   try {
-    const url = new URL(`${API_BASE_URL}/activity`);
-    url.searchParams.append('date', date);
+    const url = buildApiUrl('activity', { date });
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiToken}`,
