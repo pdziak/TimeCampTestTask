@@ -96,7 +96,23 @@ async function fetchFromApi(date: string, apiToken: string, normalizedToken: str
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorText}`);
+    let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+    
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.message) {
+        errorMessage = errorJson.message;
+      } else if (errorText) {
+        errorMessage = errorText;
+      }
+    } catch {
+      // If parsing fails, use the original error text if available
+      if (errorText) {
+        errorMessage = errorText;
+      }
+    }
+    
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
