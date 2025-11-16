@@ -1,4 +1,4 @@
-import type { Activity } from '../api/timecamp'
+import type { Activity } from '../api/types'
 
 interface ActivityItemProps {
   activity: Activity

@@ -11,7 +11,7 @@
     "module": "ESNext",
     "target": "ES2020"
   },
-  "include": ["electron/main.ts", "electron/database.ts"],
+  "include": ["electron/**/*.ts"],
   "exclude": ["electron/preload.ts"]
 }
 

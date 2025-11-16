@@ -1,8 +1,9 @@
 import { app, BrowserWindow } from 'electron';
 import { fileURLToPath } from 'node:url';
 import * as path from 'node:path';
-import { getCache } from './database-file.js';
-import { registerCacheHandlers } from './utils/ipc-handlers.js';
+import { getCache } from './database.js';
+import { IpcHandlerService } from './services/IpcHandlerService.js';
+import { logger } from './services/Logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -56,7 +57,8 @@ let cache: ReturnType<typeof getCache> | null = null;
 app.whenReady().then(() => {
   cache = getCache();
   if (cache) {
-    registerCacheHandlers(cache);
+    const ipcHandlerService = new IpcHandlerService(cache, logger);
+    ipcHandlerService.registerHandlers();
   }
   createWindow();
 });

@@ -1,4 +1,4 @@
-import type { Activity } from '../api/timecamp'
+import type { Activity } from '../api/types'
 import { ActivityItem } from './ActivityItem'
 
 interface ActivityListProps {
@@ -11,7 +11,6 @@ export function ActivityList({ activities }: ActivityListProps) {
       <h2>Activities ({activities.length})</h2>
       <div className="activities-list">
         {activities.map((activity, index) => {
-          // Create a truly unique key by combining multiple fields with index as fallback
           const keyParts = [
             activity.entry_id,
             activity.window_title_id,

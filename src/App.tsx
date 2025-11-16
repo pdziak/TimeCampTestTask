@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
-import { format } from 'date-fns'
+import { useMemo } from 'react'
 import './App.css'
-import { fetchActivity, calculateTotalTime, formatTime, type Activity } from './api/timecamp'
+import { calculateTotalTime, formatTime } from './api/timecamp'
+import { useActivityData } from './hooks/useActivityData'
 import { ActivityForm } from './components/ActivityForm'
 import { ActivitySummary } from './components/ActivitySummary'
 import { ActivityList } from './components/ActivityList'
@@ -10,74 +10,17 @@ import { LoadingMessage } from './components/LoadingMessage'
 import { InfoMessage } from './components/InfoMessage'
 
 function App() {
-  const [apiToken, setApiToken] = useState<string>('')
-  const [date, setDate] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'))
-  const [fetchedDate, setFetchedDate] = useState<string>('')
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-  const [hasFetched, setHasFetched] = useState<boolean>(false)
-  const fetchingRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    const savedToken = localStorage.getItem('timecamp_api_token')
-    if (savedToken) {
-      setApiToken(savedToken)
-    }
-  }, [])
-
-  const handleFetchData = async () => {
-    if (!apiToken.trim()) {
-      setError('Please enter your API token')
-      return
-    }
-
-    if (!date.trim()) {
-      setError('Please select a date')
-      return
-    }
-
-    const requestKey = `${apiToken}-${date}`
-    
-    if (fetchingRef.current === requestKey) {
-      return
-    }
-
-    if (loading) {
-      return
-    }
-
-    fetchingRef.current = requestKey
-    setLoading(true)
-    setError(null)
-    setActivities([])
-    setHasFetched(false)
-
-    try {
-      const data = await fetchActivity(apiToken, date)
-      setActivities(data)
-      setFetchedDate(date)
-      setHasFetched(true)
-      localStorage.setItem('timecamp_api_token', apiToken)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch activity data')
-      setActivities([])
-      setHasFetched(false)
-    } finally {
-      setLoading(false)
-      fetchingRef.current = null
-    }
-  }
-
-  const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setApiToken(e.target.value)
-    setError(null)
-  }
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDate(e.target.value)
-    setError(null)
-  }
+  const {
+    apiToken,
+    date,
+    activities,
+    loading,
+    error,
+    hasFetched,
+    setApiToken,
+    setDate,
+    fetchData,
+  } = useActivityData()
 
   const totalTimeSeconds = useMemo(() => {
     return calculateTotalTime(activities)
@@ -86,6 +29,14 @@ function App() {
   const formattedTime = useMemo(() => {
     return formatTime(totalTimeSeconds)
   }, [totalTimeSeconds])
+
+  const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setApiToken(e.target.value)
+  }
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDate(e.target.value)
+  }
 
   return (
     <div className="app">
@@ -98,7 +49,7 @@ function App() {
           loading={loading}
           onTokenChange={handleTokenChange}
           onDateChange={handleDateChange}
-          onFetch={handleFetchData}
+          onFetch={fetchData}
         />
 
         {error && <ErrorMessage message={error} />}
@@ -110,7 +61,7 @@ function App() {
             <ActivitySummary
               totalTime={formattedTime}
               totalActivities={activities.length}
-              date={fetchedDate}
+              date={date}
             />
             <ActivityList activities={activities} />
           </>
