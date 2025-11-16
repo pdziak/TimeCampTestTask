@@ -12,8 +12,7 @@ A desktop application built with Electron and React that allows you to fetch and
 - 🎨 Modern, responsive UI
 - ⚡ Fast development with Vite and hot module replacement
 
-![Uploading obraz.png…]()
-
+<img width="2314" height="2332" alt="obraz" src="https://github.com/user-attachments/assets/d54bcae4-051c-4705-8498-11966d2dcb5f" />
 
 ## Prerequisites
 
