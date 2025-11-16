@@ -12,6 +12,9 @@ A desktop application built with Electron and React that allows you to fetch and
 - 🎨 Modern, responsive UI
 - ⚡ Fast development with Vite and hot module replacement
 
+![Uploading obraz.png…]()
+
+
 ## Prerequisites
 
 - Node.js (v18 or higher recommended)
