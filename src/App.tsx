@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { format } from 'date-fns'
 import './App.css'
 import { fetchActivity, calculateTotalTime, formatTime, type Activity } from './api/timecamp'
 import { ActivityForm } from './components/ActivityForm'
@@ -10,10 +11,7 @@ import { InfoMessage } from './components/InfoMessage'
 
 function App() {
   const [apiToken, setApiToken] = useState<string>('')
-  const [date, setDate] = useState<string>(() => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
-  })
+  const [date, setDate] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'))
   const [fetchedDate, setFetchedDate] = useState<string>('')
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState<boolean>(false)
