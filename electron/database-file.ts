@@ -1,6 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { app } from 'electron';
+import type { ICacheStorage, CacheStats, CacheEntryInfo } from './interfaces/ICacheStorage.js';
+import { normalizeToken } from './utils/token-normalizer.js';
+import { isPastDate as checkPastDate } from './utils/date-validator.js';
 
 export interface CachedActivity {
   date: string;
@@ -16,7 +19,7 @@ interface CacheEntry {
   cachedAt: number;
 }
 
-class ActivityCache {
+class ActivityCache implements ICacheStorage {
   private cacheDir: string;
   private cacheFile: string;
 
@@ -54,38 +57,38 @@ class ActivityCache {
   }
 
   private getCacheKey(date: string, apiToken: string): string {
-    return `${date}:${apiToken.trim()}`;
+    return `${date}:${normalizeToken(apiToken)}`;
   }
 
   hasCache(date: string, apiToken: string): boolean {
     try {
-      const trimmedToken = apiToken.trim();
+      const normalizedToken = normalizeToken(apiToken);
       const cache = this.readCache();
-      const key = this.getCacheKey(date, trimmedToken);
+      const key = this.getCacheKey(date, normalizedToken);
       return key in cache;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
 
   getCache(date: string, apiToken: string): string | null {
     try {
-      const trimmedToken = apiToken.trim();
+      const normalizedToken = normalizeToken(apiToken);
       const cache = this.readCache();
-      const key = this.getCacheKey(date, trimmedToken);
+      const key = this.getCacheKey(date, normalizedToken);
       return cache[key]?.data ?? null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
   setCache(date: string, apiToken: string, data: string): void {
-    const trimmedToken = apiToken.trim();
+    const normalizedToken = normalizeToken(apiToken);
     const cache = this.readCache();
-    const key = this.getCacheKey(date, trimmedToken);
+    const key = this.getCacheKey(date, normalizedToken);
     cache[key] = {
       date,
-      apiToken: trimmedToken,
+      apiToken: normalizedToken,
       data,
       cachedAt: Date.now()
     };
@@ -93,60 +96,48 @@ class ActivityCache {
   }
 
   isPastDate(date: string): boolean {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
-    return targetDate < today;
+    return checkPastDate(date);
   }
 
   getAllCachedDates(apiToken: string): string[] {
     try {
-      const trimmedToken = apiToken.trim();
+      const normalizedToken = normalizeToken(apiToken);
       const cache = this.readCache();
       const dates = new Set<string>();
       
       for (const entry of Object.values(cache)) {
-        if (entry.apiToken === trimmedToken) {
+        if (entry.apiToken === normalizedToken) {
           dates.add(entry.date);
         }
       }
       
       return Array.from(dates).sort().reverse();
-    } catch (error) {
+    } catch {
       return [];
     }
   }
 
   deleteCache(date: string, apiToken: string): void {
     try {
-      const trimmedToken = apiToken.trim();
+      const normalizedToken = normalizeToken(apiToken);
       const cache = this.readCache();
-      const key = this.getCacheKey(date, trimmedToken);
+      const key = this.getCacheKey(date, normalizedToken);
       delete cache[key];
       this.writeCache(cache);
-    } catch (error) {
+    } catch {
     }
   }
 
   clearAllCache(apiToken: string): void {
     try {
-      const trimmedToken = apiToken.trim();
+      const normalizedToken = normalizeToken(apiToken);
       const cache = this.readCache();
-      const keysToDelete: string[] = [];
-      
-      for (const [key, entry] of Object.entries(cache)) {
-        if (entry.apiToken === trimmedToken) {
-          keysToDelete.push(key);
-        }
-      }
-      
-      for (const key of keysToDelete) {
-        delete cache[key];
-      }
-      
+      const keysToDelete = Object.keys(cache).filter(
+        key => cache[key].apiToken === normalizedToken
+      );
+      keysToDelete.forEach(key => delete cache[key]);
       this.writeCache(cache);
-    } catch (error) {
+    } catch {
     }
   }
 
@@ -154,24 +145,16 @@ class ActivityCache {
     try {
       const cache = this.readCache();
       const cutoffTime = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
-      const keysToDelete: string[] = [];
-      
-      for (const [key, entry] of Object.entries(cache)) {
-        if (entry.cachedAt < cutoffTime) {
-          keysToDelete.push(key);
-        }
-      }
-      
-      for (const key of keysToDelete) {
-        delete cache[key];
-      }
-      
+      const keysToDelete = Object.keys(cache).filter(
+        key => cache[key].cachedAt < cutoffTime
+      );
+      keysToDelete.forEach(key => delete cache[key]);
       this.writeCache(cache);
-    } catch (error) {
+    } catch {
     }
   }
 
-  listAllCacheEntries(): Array<{ date: string; apiToken: string; dataLength: number; cachedAt: number }> {
+  listAllCacheEntries(): CacheEntryInfo[] {
     try {
       const cache = this.readCache();
       return Object.values(cache).map(entry => ({
@@ -180,16 +163,18 @@ class ActivityCache {
         dataLength: entry.data.length,
         cachedAt: entry.cachedAt
       }));
-    } catch (error) {
+    } catch {
       return [];
     }
   }
 
-  getCacheStats(apiToken: string): { totalEntries: number; oldestDate: string | null; newestDate: string | null } {
+  getCacheStats(apiToken: string): CacheStats {
     try {
-      const trimmedToken = apiToken.trim();
+      const normalizedToken = normalizeToken(apiToken);
       const cache = this.readCache();
-      const entries = Object.values(cache).filter(e => e.apiToken === trimmedToken);
+      const entries = Object.values(cache).filter(
+        e => e.apiToken === normalizedToken
+      );
       
       if (entries.length === 0) {
         return { totalEntries: 0, oldestDate: null, newestDate: null };
@@ -201,7 +186,7 @@ class ActivityCache {
         oldestDate: dates[0] || null,
         newestDate: dates[dates.length - 1] || null
       };
-    } catch (error) {
+    } catch {
       return { totalEntries: 0, oldestDate: null, newestDate: null };
     }
   }

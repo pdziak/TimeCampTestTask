@@ -1,12 +1,11 @@
+import { differenceInSeconds, parseISO } from 'date-fns';
 import { buildApiUrl } from './api-config';
+import { validateApiToken, validateDate, normalizeToken } from '../utils/validation';
 
 const pendingRequests = new Map<string, Promise<Activity[]>>();
 
 function isCacheAvailable(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  return !!window.cache;
+  return typeof window !== 'undefined' && !!window.cache;
 }
 
 export interface Activity {
@@ -36,42 +35,16 @@ export interface ApiError {
 }
 
 export async function fetchActivity(apiToken: string, date: string, forceRefresh: boolean = false): Promise<Activity[]> {
-  if (!apiToken) {
-    throw new Error('API token is required');
-  }
+  validateApiToken(apiToken);
+  validateDate(date);
 
-  if (!date) {
-    throw new Error('Date is required');
-  }
-
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(date)) {
-    throw new Error('Date must be in format YYYY-MM-DD (e.g., 2013-03-20)');
-  }
-
-  const requestKey = `${apiToken}-${date}-${forceRefresh}`;
+  const normalizedToken = normalizeToken(apiToken);
+  const requestKey = `${normalizedToken}-${date}-${forceRefresh}`;
   
   if (!forceRefresh) {
-    try {
-      if (isCacheAvailable()) {
-        const trimmedToken = apiToken.trim();
-        const hasCache = await window.cache!.has(date, trimmedToken);
-        
-        if (hasCache) {
-          const cachedData = await window.cache!.get(date, trimmedToken);
-          
-          if (cachedData) {
-            try {
-              const parsed = JSON.parse(cachedData);
-              return Array.isArray(parsed) ? parsed : [parsed];
-            } catch (e) {
-              // Fall through to API call
-            }
-          }
-        }
-      }
-    } catch (error) {
-      // Continue to API call if cache check fails
+    const cachedData = await getCachedData(date, normalizedToken);
+    if (cachedData) {
+      return cachedData;
     }
   }
 
@@ -79,51 +52,64 @@ export async function fetchActivity(apiToken: string, date: string, forceRefresh
     return pendingRequests.get(requestKey)!;
   }
 
-  const apiRequest = (async () => {
-    try {
-      const url = buildApiUrl('activity', { date });
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `API request failed: ${response.status} ${response.statusText}. ${errorText}`
-        );
-      }
-
-      const data = await response.json();
-      const activities = Array.isArray(data) ? data : [data];
-
-      try {
-        if (isCacheAvailable()) {
-          const trimmedToken = apiToken.trim();
-          await window.cache!.set(date, trimmedToken, JSON.stringify(activities));
-        }
-      } catch (error) {
-        // Continue even if caching fails
-      }
-
-      return activities;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to fetch activity data');
-    } finally {
+  const apiRequest = fetchFromApi(date, apiToken, normalizedToken)
+    .finally(() => {
       pendingRequests.delete(requestKey);
-    }
-  })();
+    });
 
   pendingRequests.set(requestKey, apiRequest);
-  
   return apiRequest;
+}
+
+async function getCachedData(date: string, normalizedToken: string): Promise<Activity[] | null> {
+  if (!isCacheAvailable()) {
+    return null;
+  }
+
+  try {
+    const hasCache = await window.cache!.has(date, normalizedToken);
+    if (!hasCache) {
+      return null;
+    }
+
+    const cachedData = await window.cache!.get(date, normalizedToken);
+    if (!cachedData) {
+      return null;
+    }
+
+    const parsed = JSON.parse(cachedData);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFromApi(date: string, apiToken: string, normalizedToken: string): Promise<Activity[]> {
+  const url = buildApiUrl('activity', { date });
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API request failed: ${response.status} ${response.statusText}. ${errorText}`);
+  }
+
+  const data = await response.json();
+  const activities = Array.isArray(data) ? data : [data];
+
+  if (isCacheAvailable()) {
+    try {
+      await window.cache!.set(date, normalizedToken, JSON.stringify(activities));
+    } catch {
+    }
+  }
+
+  return activities;
 }
 
 export function calculateTotalTime(activities: Activity[]): number {
@@ -137,10 +123,14 @@ export function calculateTotalTime(activities: Activity[]): number {
       0;
     
     if (duration === 0 && activity.start_time && activity.end_time) {
-      const start = new Date(activity.start_time).getTime();
-      const end = new Date(activity.end_time).getTime();
-      if (!isNaN(start) && !isNaN(end) && end > start) {
-        return total + Math.floor((end - start) / 1000);
+      try {
+        const start = parseISO(activity.start_time);
+        const end = parseISO(activity.end_time);
+        const seconds = differenceInSeconds(end, start);
+        if (seconds > 0) {
+          return total + seconds;
+        }
+      } catch {
       }
     }
     
