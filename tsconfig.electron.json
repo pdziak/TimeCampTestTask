@@ -6,9 +6,12 @@
     "allowImportingTsExtensions": false,
     "moduleResolution": "node",
     "verbatimModuleSyntax": false,
-    "erasableSyntaxOnly": false
+    "erasableSyntaxOnly": false,
+    "allowSyntheticDefaultImports": true,
+    "module": "ESNext",
+    "target": "ES2020"
   },
-  "include": ["electron/**/*.ts"],
-  "exclude": []
+  "include": ["electron/main.ts", "electron/database.ts"],
+  "exclude": ["electron/preload.ts"]
 }
 

@@ -11,7 +11,18 @@ export function ActivityList({ activities }: ActivityListProps) {
       <h2>Activities ({activities.length})</h2>
       <div className="activities-list">
         {activities.map((activity, index) => {
-          const uniqueKey = activity.entry_id || activity.window_title_id || activity.id || `activity-${index}`
+          // Create a truly unique key by combining multiple fields with index as fallback
+          const keyParts = [
+            activity.entry_id,
+            activity.window_title_id,
+            activity.id,
+            activity.start_time,
+            activity.end_time,
+            index
+          ].filter(Boolean);
+          const uniqueKey = keyParts.length > 0 
+            ? keyParts.join('-') 
+            : `activity-${index}`;
           return (
             <ActivityItem key={uniqueKey} activity={activity} index={index} />
           )

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import './App.css'
 import { fetchActivity, calculateTotalTime, formatTime, type Activity } from './api/timecamp'
 import { ActivityForm } from './components/ActivityForm'
@@ -11,7 +11,6 @@ import { InfoMessage } from './components/InfoMessage'
 function App() {
   const [apiToken, setApiToken] = useState<string>('')
   const [date, setDate] = useState<string>(() => {
-    // Default to today's date in YYYY-MM-DD format
     const today = new Date()
     return today.toISOString().split('T')[0]
   })
@@ -20,9 +19,9 @@ function App() {
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [hasFetched, setHasFetched] = useState<boolean>(false)
+  const fetchingRef = useRef<string | null>(null)
 
   useEffect(() => {
-    // Load API token from localStorage if available
     const savedToken = localStorage.getItem('timecamp_api_token')
     if (savedToken) {
       setApiToken(savedToken)
@@ -40,6 +39,17 @@ function App() {
       return
     }
 
+    const requestKey = `${apiToken}-${date}`
+    
+    if (fetchingRef.current === requestKey) {
+      return
+    }
+
+    if (loading) {
+      return
+    }
+
+    fetchingRef.current = requestKey
     setLoading(true)
     setError(null)
     setActivities([])
@@ -50,7 +60,6 @@ function App() {
       setActivities(data)
       setFetchedDate(date)
       setHasFetched(true)
-      // Save token to localStorage for convenience
       localStorage.setItem('timecamp_api_token', apiToken)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch activity data')
@@ -58,6 +67,7 @@ function App() {
       setHasFetched(false)
     } finally {
       setLoading(false)
+      fetchingRef.current = null
     }
   }
 
@@ -71,7 +81,6 @@ function App() {
     setError(null)
   }
 
-  // Calculate total time spent
   const totalTimeSeconds = useMemo(() => {
     return calculateTotalTime(activities)
   }, [activities])
