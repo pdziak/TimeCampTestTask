@@ -2,6 +2,8 @@
   "name": "electron-react-app",
   "private": true,
   "version": "0.0.0",
+  "description": "TimeCamp Activity Tracking Application",
+  "author": "TimeCamp",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -9,9 +11,12 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "postinstall": "electron-builder install-app-deps || true",
+    "postinstall": "electron-builder install-app-deps || echo 'Rebuild skipped - will be handled during build'",
+    "rebuild": "electron-rebuild",
     "electron:dev": "tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "npm run build && tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && electron-builder",
+    "electron:build:mac": "npm run build && tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && electron-builder --mac",
+    "electron:build:win": "npm run build && tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && electron-builder --win",
     "electron:preview": "npm run build && tsc -p tsconfig.electron.json && tsc -p tsconfig.preload.json && electron ."
   },
   "dependencies": {
@@ -29,7 +34,8 @@
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
     "concurrently": "^9.2.1",
-    "electron": "^39.1.2",
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -41,5 +47,63 @@
     "typescript-eslint": "^8.46.3",
     "vite": "^7.2.2",
     "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.timecamp.app",
+    "productName": "TimeCamp App",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "node_modules/better-sqlite3/**/*"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ],
+    "npmRebuild": true,
+    "buildDependenciesFromSource": true,
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

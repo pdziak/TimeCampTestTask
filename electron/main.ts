@@ -47,7 +47,7 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    app.whenReady().then(createWindow);
   }
 });
 
@@ -58,6 +58,7 @@ app.whenReady().then(() => {
   if (cache) {
     registerCacheHandlers(cache);
   }
+  createWindow();
 });
 
 app.on('before-quit', () => {
@@ -65,6 +66,4 @@ app.on('before-quit', () => {
     cache.close();
   }
 });
-
-app.whenReady().then(createWindow);
 
